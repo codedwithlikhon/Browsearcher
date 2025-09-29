@@ -1,17 +1,11 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import type { LanguageModel } from 'ai';
 import { runBrowserAgentTask, type BrowserAgentResult } from '../agents/browserAgent.js';
-import { loadConfig, type AppConfig } from '../config/index.js';
+import { loadConfig } from '../config/index.js';
+import { createModel } from './modelFactory.js';
 
 type CliRunFormat = 'human' | 'json';
 
 export type CliRunOptions = {
   format?: CliRunFormat;
-};
-
-const createModel = (config: AppConfig): LanguageModel => {
-  const google = createGoogleGenerativeAI({ apiKey: config.apiKey });
-  return google.chat(config.model);
 };
 
 const formatUsage = (usage: Record<string, number | undefined>): string => {

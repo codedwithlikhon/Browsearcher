@@ -49,3 +49,63 @@ export type SessionEvent =
   | { type: 'action-finished'; sessionId: string; action: BrowserAction }
   | { type: 'message'; sessionId: string; message: ChatMessage };
 
+
+export type AutomationWorkflowStep = {
+  title: string;
+  description: string;
+  automation: string;
+  tools: string[];
+  successCriteria: string;
+};
+
+export type AutomationWorkflowStage = {
+  name: string;
+  goal: string;
+  steps: AutomationWorkflowStep[];
+};
+
+export type AutomationIntegration = {
+  platform: string;
+  capability: string;
+  trigger: string;
+  actions: string[];
+};
+
+export type AutomationMetric = {
+  metric: string;
+  target: string;
+  measurement: string;
+};
+
+export type AutomationBlueprint = {
+  id: string;
+  title: string;
+  summary: string;
+  primaryChannel: string;
+  targetUsers: string;
+  persona: string;
+  promptTemplate: string;
+  languages: string[];
+  pains: string[];
+  keyOutcomes: string[];
+  workflow: AutomationWorkflowStage[];
+  integrations: AutomationIntegration[];
+  guardrails: string[];
+  launchChecklist: string[];
+  successMetrics: AutomationMetric[];
+  followUpIdeas: string[];
+};
+
+export type AutomationOperatingModel = {
+  intakeProcess: string[];
+  communicationCadence: string[];
+  observability: string[];
+  ownership: string;
+};
+
+export type AutomationSuite = {
+  executiveSummary: string;
+  automations: AutomationBlueprint[];
+  sharedOperatingModel?: AutomationOperatingModel;
+  recommendations: string[];
+};
