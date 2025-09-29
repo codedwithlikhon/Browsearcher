@@ -7,6 +7,9 @@ control. It is designed to explore pages, extract structured content, and produc
 
 * **AI-first automation:** The agent loop is implemented with the AI SDK `Agent` class so the language model can call typed tools
   for navigation, text extraction, and DOM inspection.
+* **Idea-to-execution orchestration:** The `general` CLI entrypoint runs a world-class operations agent capable of planning
+  multi-step missions, researching the web, invoking automation design blueprints, running sandboxed shell commands, and
+  persisting artifacts until the objective is complete.
 * **Headless browser control:** Playwright manages a sandboxed browser session locally or through the Playwright MCP server.
 * **Provider flexibility:** Gemini (Google) is configured by default, with optional OpenAI support for GPT-4o style models.
 * **Extensible tooling:** Additional tools—such as Browser-Use workflows or custom MCP integrations—can be layered on top by

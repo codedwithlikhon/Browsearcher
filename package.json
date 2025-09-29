@@ -10,7 +10,8 @@
     "start:cli": "node dist/index.js",
     "start:automation": "node dist/cli/automation.js",
     "build": "tsc -p tsconfig.json",
-    "automation": "tsx src/cli/automation.ts"
+    "automation": "tsx src/cli/automation.ts",
+    "general": "tsx src/cli/general.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.17",

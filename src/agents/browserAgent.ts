@@ -18,6 +18,7 @@ import {
   type ExtractTextInput,
   type NavigateInput
 } from '../types/toolSchemas.js';
+import { mergeUsage } from '../util/usage.js';
 
 const DEFAULT_SYSTEM_PROMPT = `You are Browsearcher, an automation specialist that combines AI SDK tools with a Playwright browser.
 Follow this workflow:
@@ -108,30 +109,6 @@ const parseJson = (value: string): unknown => {
     }
     return undefined;
   }
-};
-
-const mergeUsage = (
-  primary: LanguageModelUsage | undefined,
-  secondary: LanguageModelUsage | undefined
-): LanguageModelUsage => {
-  const totals: Record<string, number> = {};
-
-  const add = (usage: LanguageModelUsage | undefined) => {
-    if (!usage) {
-      return;
-    }
-
-    Object.entries(usage).forEach(([key, value]) => {
-      if (typeof value === 'number') {
-        totals[key] = (totals[key] ?? 0) + value;
-      }
-    });
-  };
-
-  add(primary);
-  add(secondary);
-
-  return totals as LanguageModelUsage;
 };
 
 const runReflectionPass = async ({
