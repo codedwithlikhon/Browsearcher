@@ -1,5 +1,6 @@
 import {
   Experimental_Agent as Agent,
+  generateText,
   stepCountIs,
   tool,
   type LanguageModel,
@@ -20,11 +21,12 @@ import {
 
 const DEFAULT_SYSTEM_PROMPT = `You are Browsearcher, an automation specialist that combines AI SDK tools with a Playwright browser.
 Follow this workflow:
-1. Always call the \\"navigate\\" tool with the target URL before attempting extraction.
-2. Use \\"extractText\\" to gather the most relevant textual snippets (prefer selectors provided by the user).
-3. Optionally call \\"domSnapshot\\" when HTML structure is required for reasoning.
-4. Synthesize a concise Markdown summary with bullet points and next-step recommendations.
-Finish your final response with a line that starts with \\"DONE:\\\" to signal completion.`;
+1. Always call the "navigate" tool with the target URL before attempting extraction.
+2. Use "extractText" to gather the most relevant textual snippets (prefer selectors provided by the user).
+3. Optionally call "domSnapshot" when HTML structure is required for reasoning.
+4. Before you finalise, run a quick self-check to confirm the collected evidence covers the user's goal and note the tests you executed or still need.
+5. Synthesize a concise Markdown report with sections for Summary, Tests, and Improvements, each containing actionable bullet points.
+Finish your final response with a line that starts with "DONE:" to signal completion.`;
 
 export type BrowserAgentTask = {
   goal: string;
@@ -57,6 +59,7 @@ export type BrowserAgentOptions = {
     domSnapshot: PlaywrightController['domSnapshot'];
     close: PlaywrightController['close'];
   };
+  enableReflection?: boolean;
 };
 
 type BrowserToolSet = {
@@ -74,6 +77,116 @@ const doneCondition: StopCondition<BrowserToolSet> = ({ steps }) => {
   return /DONE:/i.test(last.text ?? '');
 };
 
+const summariseToolTrace = (executions: ToolExecutionTrace[]): string => {
+  if (executions.length === 0) {
+    return 'No tool executions were recorded.';
+  }
+
+  return executions
+    .slice(-6)
+    .reverse()
+    .map((execution, index) => {
+      const cappedInput = JSON.stringify(execution.input).slice(0, 200);
+      const cappedOutput = JSON.stringify(execution.output).slice(0, 200);
+      return `#${index + 1} ${execution.toolName} | input=${cappedInput} | output=${cappedOutput}`;
+    })
+    .join('\n');
+};
+
+const parseJson = (value: string): unknown => {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    const start = value.indexOf('{');
+    const end = value.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        return JSON.parse(value.slice(start, end + 1));
+      } catch (innerError) {
+        return undefined;
+      }
+    }
+    return undefined;
+  }
+};
+
+const mergeUsage = (
+  primary: LanguageModelUsage | undefined,
+  secondary: LanguageModelUsage | undefined
+): LanguageModelUsage => {
+  const totals: Record<string, number> = {};
+
+  const add = (usage: LanguageModelUsage | undefined) => {
+    if (!usage) {
+      return;
+    }
+
+    Object.entries(usage).forEach(([key, value]) => {
+      if (typeof value === 'number') {
+        totals[key] = (totals[key] ?? 0) + value;
+      }
+    });
+  };
+
+  add(primary);
+  add(secondary);
+
+  return totals as LanguageModelUsage;
+};
+
+const runReflectionPass = async ({
+  model,
+  task,
+  summary,
+  toolExecutions
+}: {
+  model: LanguageModel;
+  task: BrowserAgentTask;
+  summary: string;
+  toolExecutions: ToolExecutionTrace[];
+}): Promise<{ summary: string; usage?: LanguageModelUsage }> => {
+  const prompt = `You are Browsearcher's quality analyst. Review the agent's work and, if needed, produce an improved final response.
+
+Goal: ${task.goal}
+Target URL: ${task.url}
+
+Tool execution trace (most recent first):
+${summariseToolTrace(toolExecutions)}
+
+The agent reported:
+"""
+${summary}
+"""
+
+Requirements:
+- Return Markdown with sections "## Summary", "## Tests", and "## Improvements" using concise bullet points.
+- Highlight validations already performed. If no automated tests ran, suggest the next best checks.
+- Ensure the final line starts with "DONE:" followed by the closing guidance.
+- Respond with a JSON object: { "finalSummary": "..." }.`;
+
+  const reflection = await generateText({ model, prompt });
+  const parsed = parseJson(reflection.text);
+
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    'finalSummary' in parsed &&
+    typeof (parsed as Record<string, unknown>).finalSummary === 'string'
+  ) {
+    const improved = ((parsed as { finalSummary: string }).finalSummary ?? '').trim();
+    if (improved) {
+      return { summary: improved, usage: reflection.usage };
+    }
+  }
+
+  const fallback = reflection.text.trim();
+  if (fallback) {
+    return { summary: fallback, usage: reflection.usage };
+  }
+
+  return { summary, usage: reflection.usage };
+};
+
 const buildUserPrompt = (task: BrowserAgentTask): string => {
   const lines = [
     `Primary objective: ${task.goal}`,
@@ -81,8 +194,7 @@ const buildUserPrompt = (task: BrowserAgentTask): string => {
     `Preferred selector: ${task.selector ?? 'none provided'}`,
     task.maxCharacters ? `Suggested text budget: ${task.maxCharacters} characters.` : undefined,
     '',
-    'Execute the workflow step-by-step. Think aloud only via tool calls. '
-      + 'When summarising, provide actionable insights for launching a product for free.'
+    'Execute the workflow step-by-step. Think aloud only via tool calls. When summarising, produce Markdown with "## Summary", "## Tests", and "## Improvements" sections and actionable bullet points for a free product launch.'
   ].filter(Boolean);
 
   lines.push('', 'Remember to end with "DONE:" once the summary is ready.');
@@ -145,10 +257,32 @@ export const runBrowserAgentTask = async (
   try {
     const response = await agent.generate({ prompt: buildUserPrompt(task) });
 
+    let summary = response.text.trim();
+    let usage = mergeUsage(response.totalUsage, undefined);
+
+    if (options.enableReflection !== false) {
+      const reflection = await runReflectionPass({
+        model: options.model,
+        task,
+        summary,
+        toolExecutions
+      });
+
+      if (/DONE:/i.test(reflection.summary)) {
+        summary = reflection.summary.trim();
+      } else if (/DONE:/i.test(summary)) {
+        summary = summary.trim();
+      } else {
+        summary = `${summary.trim()}\nDONE: Review complete.`;
+      }
+
+      usage = mergeUsage(usage, reflection.usage);
+    }
+
     return {
-      summary: response.text.trim(),
+      summary,
       toolExecutions,
-      usage: response.totalUsage
+      usage
     };
   } finally {
     await controller.close();

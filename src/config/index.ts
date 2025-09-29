@@ -1,6 +1,8 @@
 import { config as loadEnv } from 'dotenv';
 import { z } from 'zod';
 
+import { resolveTaskUrl } from './deployment.js';
+
 loadEnv();
 
 const RawConfigSchema = z.object({
@@ -13,6 +15,9 @@ const RawConfigSchema = z.object({
   TASK_GOAL: z.string().optional(),
   TASK_SELECTOR: z.string().optional(),
   TASK_MAX_CHARS: z.string().optional(),
+  TASK_RELATED_PROJECT: z.string().optional(),
+  TASK_RELATED_PATH: z.string().optional(),
+  TASK_DEFAULT_HOST: z.string().optional(),
   MCP_SERVER_URL: z.string().url().optional(),
   MCP_SERVER_TOKEN: z.string().optional(),
   BROWSER_USE_ENABLED: z.string().optional(),
@@ -30,6 +35,7 @@ export type AppConfig = {
     url: string;
     selector?: string;
     maxCharacters?: number;
+    source: 'explicit' | 'related-project' | 'default' | 'none';
   };
   mcp: {
     serverUrl?: string;
@@ -38,6 +44,10 @@ export type AppConfig = {
   browserUse: {
     enabled: boolean;
     vision: boolean;
+  };
+  deployment: {
+    relatedProject?: string;
+    relatedHostSource: 'explicit' | 'related-project' | 'default' | 'none';
   };
 };
 
@@ -85,6 +95,9 @@ export const loadConfig = (
     TASK_GOAL: overrides.TASK_GOAL ?? process.env.TASK_GOAL,
     TASK_SELECTOR: overrides.TASK_SELECTOR ?? process.env.TASK_SELECTOR,
     TASK_MAX_CHARS: overrides.TASK_MAX_CHARS ?? process.env.TASK_MAX_CHARS,
+    TASK_RELATED_PROJECT: overrides.TASK_RELATED_PROJECT ?? process.env.TASK_RELATED_PROJECT,
+    TASK_RELATED_PATH: overrides.TASK_RELATED_PATH ?? process.env.TASK_RELATED_PATH,
+    TASK_DEFAULT_HOST: overrides.TASK_DEFAULT_HOST ?? process.env.TASK_DEFAULT_HOST,
     MCP_SERVER_URL: overrides.MCP_SERVER_URL ?? process.env.MCP_SERVER_URL,
     MCP_SERVER_TOKEN: overrides.MCP_SERVER_TOKEN ?? process.env.MCP_SERVER_TOKEN,
     BROWSER_USE_ENABLED:
@@ -97,6 +110,13 @@ export const loadConfig = (
     throw new Error('GEMINI_API_KEY is required to run the agent.');
   }
 
+  const { url: resolvedTaskUrl, source: taskSource } = resolveTaskUrl({
+    explicitUrl: merged.TASK_URL,
+    projectName: merged.TASK_RELATED_PROJECT,
+    defaultHost: merged.TASK_DEFAULT_HOST ?? process.env.RAILWAY_STATIC_URL,
+    path: merged.TASK_RELATED_PATH
+  });
+
   return {
     apiKey,
     model: merged.AI_MODEL ?? 'models/gemini-2.0-flash',
@@ -107,9 +127,10 @@ export const loadConfig = (
       goal:
         merged.TASK_GOAL ??
         'Research the page and return the most important actions for a free product launch.',
-      url: merged.TASK_URL ?? 'https://example.com',
+      url: resolvedTaskUrl,
       selector: merged.TASK_SELECTOR,
-      maxCharacters: toNumber(merged.TASK_MAX_CHARS, undefined)
+      maxCharacters: toNumber(merged.TASK_MAX_CHARS, undefined),
+      source: taskSource
     },
     mcp: {
       serverUrl: merged.MCP_SERVER_URL,
@@ -118,6 +139,10 @@ export const loadConfig = (
     browserUse: {
       enabled: toBoolean(merged.BROWSER_USE_ENABLED, false),
       vision: toBoolean(merged.BROWSER_USE_VISION, true)
+    },
+    deployment: {
+      relatedProject: merged.TASK_RELATED_PROJECT,
+      relatedHostSource: taskSource
     }
   };
 };

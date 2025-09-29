@@ -71,6 +71,16 @@ export const runCli = async (options: CliRunOptions = {}): Promise<BrowserAgentR
   const model = createModel(config);
   const format: CliRunFormat = options.format ?? 'human';
 
+  if (config.task.source === 'related-project') {
+    // eslint-disable-next-line no-console
+    console.info(
+      `Resolved task URL ${config.task.url} from Vercel related project ${config.deployment.relatedProject}.`
+    );
+  } else if (config.task.source === 'default') {
+    // eslint-disable-next-line no-console
+    console.info(`Task URL defaulted to ${config.task.url}. Provide TASK_URL to override.`);
+  }
+
   if (config.mcp.serverUrl) {
     // eslint-disable-next-line no-console
     console.warn(
