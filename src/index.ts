@@ -1,3 +1,13 @@
+import { runCli } from './cli/index.js';
+
+runCli().catch((error) => {
+  // eslint-disable-next-line no-console
+  console.error('Agent run failed:', error);
+  process.exitCode = 1;
+});
+
+export { runCli };
+=======
 import { BrowserAutomationAgent } from './agent/browserAutomationAgent.js';
 import type { AutomationTask } from './agent/types.js';
 import { loadConfig } from './config.js';

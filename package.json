@@ -1,5 +1,27 @@
 {
   "name": "browsearcher",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/cli/index.ts",
+    "dev:server": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "start:cli": "node dist/index.js",
+    "start:automation": "node dist/cli/automation.js",
+    "build": "tsc -p tsconfig.json",
+    "automation": "tsx src/cli/automation.ts",
+    "general": "tsx src/cli/general.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^2.0.17",
+    "@fastify/cors": "^10.0.1",
+    "@vercel/related-projects": "^1.0.0",
+    "ai": "^5.0.57",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "nanoid": "^5.0.7",
+=======
   "version": "0.1.0",
   "private": true,
   "type": "module",
