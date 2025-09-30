@@ -35,6 +35,8 @@ export const buildServer = (service: TaskSessionService): FastifyInstance => {
 
   void app.register(cors, { origin: true });
 
+  app.get('/health', async () => ({ status: 'ok' }));
+
   app.post('/sessions', async (request, reply) => {
     const parseResult = createSessionSchema.safeParse(request.body);
     if (!parseResult.success) {
