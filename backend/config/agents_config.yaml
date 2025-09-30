@@ -1,0 +1,16 @@
+# Agent definitions and roles
+# This is a placeholder file.
+# You can define your agents and their roles here.
+# For example:
+#
+# agents:
+#   - name: data_acquisition_agent
+#     description: "A specialized agent for gathering data from various sources."
+#     tools:
+#       - web_search
+#       - file_handler
+#   - name: code_generation_agent
+#     description: "A specialized agent for writing and debugging code."
+#     tools:
+#       - shell_executor
+#       - file_handler
