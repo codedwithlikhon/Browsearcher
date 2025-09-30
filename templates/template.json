@@ -1,0 +1,40 @@
+{
+  "name": "Gemini Multi-Agent AI System",
+  "description": "Deploy a complete multi-agent AI system with isolated execution",
+  "services": [
+    {
+      "name": "frontend",
+      "source": {
+        "repo": "your-repo",
+        "directory": "frontend"
+      },
+      "railwayJson": "frontend/railway.json"
+    },
+    {
+      "name": "backend",
+      "source": {
+        "repo": "your-repo",
+        "directory": "backend"
+      },
+      "railwayToml": "backend/railway.toml"
+    },
+    {
+      "name": "sandbox",
+      "source": {
+        "repo": "your-repo",
+        "directory": "sandbox"
+      },
+      "railwayJson": "sandbox/railway.json"
+    }
+  ],
+  "variables": [
+    {
+      "name": "OPENAI_API_KEY",
+      "description": "OpenAI API key for LLM access"
+    },
+    {
+      "name": "GOOGLE_SEARCH_API_KEY",
+      "description": "Google Search API key"
+    }
+  ]
+}
