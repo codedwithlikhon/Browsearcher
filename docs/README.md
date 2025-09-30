@@ -23,7 +23,7 @@ with large language models. This guide walks through environment preparation, de
 
    ```bash
    cp .env.example .env
-   # Edit .env to set GEMINI_API_KEY or OPENAI_API_KEY and adjust task defaults
+   # Edit .env to set GEMINI_API_KEY (or GOOGLE_GENERATIVE_AI_API_KEY) or OPENAI_API_KEY and adjust task defaults
    ```
 
 3. (Optional) Install Browser-Use and its browser dependencies when you need DOM+vision powered agents:

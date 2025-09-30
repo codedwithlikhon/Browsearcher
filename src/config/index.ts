@@ -7,6 +7,8 @@ loadEnv();
 
 const RawConfigSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
   AI_MODEL: z.string().optional(),
   PLAYWRIGHT_BROWSER: z.enum(['chromium', 'firefox', 'webkit']).optional(),
   PLAYWRIGHT_HEADLESS: z.string().optional(),
@@ -86,6 +88,9 @@ export const loadConfig = (
 ): AppConfig => {
   const merged = RawConfigSchema.parse({
     GEMINI_API_KEY: overrides.GEMINI_API_KEY ?? process.env.GEMINI_API_KEY,
+    GOOGLE_GENERATIVE_AI_API_KEY:
+      overrides.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    GOOGLE_API_KEY: overrides.GOOGLE_API_KEY ?? process.env.GOOGLE_API_KEY,
     AI_MODEL: overrides.AI_MODEL ?? process.env.AI_MODEL,
     PLAYWRIGHT_BROWSER: overrides.PLAYWRIGHT_BROWSER ?? process.env.PLAYWRIGHT_BROWSER,
     PLAYWRIGHT_HEADLESS: overrides.PLAYWRIGHT_HEADLESS ?? process.env.PLAYWRIGHT_HEADLESS,
@@ -105,9 +110,15 @@ export const loadConfig = (
     BROWSER_USE_VISION: overrides.BROWSER_USE_VISION ?? process.env.BROWSER_USE_VISION
   });
 
-  const apiKey = merged.GEMINI_API_KEY ?? process.env.GEMINI_API_KEY;
+  const apiKey =
+    merged.GEMINI_API_KEY ??
+    merged.GOOGLE_GENERATIVE_AI_API_KEY ??
+    merged.GOOGLE_API_KEY;
+
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is required to run the agent.');
+    throw new Error(
+      'A Gemini API key is required. Set GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY (or GOOGLE_API_KEY) to run the agent.'
+    );
   }
 
   const { url: resolvedTaskUrl, source: taskSource } = resolveTaskUrl({
