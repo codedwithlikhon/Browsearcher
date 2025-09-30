@@ -4,5 +4,4 @@ dist/
 .DS_Store
 coverage/
 playwright-report/
-python/__pycache__/
-python/.venv/
+
